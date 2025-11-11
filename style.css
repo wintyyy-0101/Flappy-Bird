@@ -139,3 +139,10 @@ canvas {
   transform: scale(1.05);
   box-shadow: 0 7px 0 #f57f17;
 }
+/* --- Mobile responsiveness --- */
+canvas {
+  width: 90vw;             /* shrink to 90% of viewport width */
+  max-width: 400px;        /* keep desktop size cap */
+  height: auto;            /* maintain aspect ratio */
+  aspect-ratio: 2 / 3;     /* ~400×600 ratio */
+}
