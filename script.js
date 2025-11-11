@@ -1,3 +1,4 @@
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
@@ -7,8 +8,10 @@ const restartBtn = document.getElementById('restartBtn');
 const finalScore = document.getElementById('finalScore');
 
 let bird = { x: 80, y: 300, r: 18, vy: 0, frame: 0 };
-let gravity = 0.5;
-let flap = -8;
+let baseGravity = 0.5;
+let baseFlap = -8;
+let gravity = baseGravity;
+let flap = baseFlap;
 let pipes = [];
 let clouds = [];
 let explosions = [];
@@ -23,10 +26,10 @@ function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
   canvas.width = rect.width;
   canvas.height = rect.height;
-  groundY = canvas.height - 40; // ground stays at bottom
+  groundY = canvas.height - 20;
 }
 window.addEventListener("resize", resizeCanvas);
-resizeCanvas(); // run once at start
+resizeCanvas(); // call once at start
 
 function drawBackground() {
   let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -118,12 +121,9 @@ function update() {
     let top = Math.random() * 250 + 50;
     pipes.push({ x: canvas.width, width: 60, top: top, gap: 150 });
   }
-  pipes.forEach(pipe => (pipe.x -= 3));
-  if (pipes.length && pipes[0].x + pipes[0].width < 0) {
-    pipes.shift();
-    score++;
-    scoreDisplay.textContent = score;
-  }
+groundOffset -= 2 * scale;
+pipes.forEach(pipe => (pipe.x -= 3 * scale));
+clouds.forEach(cloud => (cloud.x -= 1.2 * scale));
 
   // clouds
   if (frame % 120 === 0)
