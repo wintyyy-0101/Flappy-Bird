@@ -1,4 +1,3 @@
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
@@ -22,15 +21,28 @@ let started = false;
 let groundY = 580;
 let groundOffset = 0;
 
+// --- NEW: Responsive scale factor ---
+let scale = 1;
+
+// --- Responsive canvas resize ---
 function resizeCanvas() {
+  const designWidth = 400;
+  const designHeight = 600;
   const rect = canvas.getBoundingClientRect();
+
+  // Calculate scale relative to design size
+  scale = rect.width / designWidth;
+
+  // Resize canvas resolution properly
   canvas.width = rect.width;
   canvas.height = rect.height;
-  groundY = canvas.height - 20;
+
+  groundY = canvas.height - 20 * scale;
 }
 window.addEventListener("resize", resizeCanvas);
-resizeCanvas(); // call once at start
+resizeCanvas();
 
+// --- Drawing functions ---
 function drawBackground() {
   let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
   sky.addColorStop(0, "#6ec6ff");
@@ -42,22 +54,22 @@ function drawBackground() {
   ctx.fillStyle = "rgba(255,255,255,0.8)";
   clouds.forEach(cloud => {
     ctx.beginPath();
-    ctx.ellipse(cloud.x, cloud.y, cloud.size * 2, cloud.size, 0, 0, Math.PI * 2);
+    ctx.ellipse(cloud.x, cloud.y, cloud.size * 2 * scale, cloud.size * scale, 0, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // moving ground
+  // ground
   ctx.fillStyle = "#8d6e63";
-  ctx.fillRect(0, groundY, canvas.width, 40);
+  ctx.fillRect(0, groundY, canvas.width, 40 * scale);
   ctx.fillStyle = "#6d4c41";
-  for (let i = 0; i < canvas.width / 40 + 1; i++) {
-    ctx.fillRect((i * 40 + groundOffset) % canvas.width, groundY, 20, 40);
+  for (let i = 0; i < canvas.width / (40 * scale) + 1; i++) {
+    ctx.fillRect((i * 40 * scale + groundOffset) % canvas.width, groundY, 20 * scale, 40 * scale);
   }
 }
 
 function drawBird() {
   ctx.save();
-  ctx.translate(bird.x, bird.y);
+  ctx.translate(bird.x * scale, bird.y * scale);
   ctx.rotate(bird.vy * 0.04);
 
   // body
@@ -65,20 +77,20 @@ function drawBird() {
   ctx.shadowColor = "rgba(0,0,0,0.4)";
   ctx.shadowBlur = 8;
   ctx.beginPath();
-  ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
+  ctx.arc(0, 0, bird.r * scale, 0, Math.PI * 2);
   ctx.fill();
 
-  // wing animation
-  let wingY = Math.sin(bird.frame / 5) * 3;
+  // wing
+  let wingY = Math.sin(bird.frame / 5) * 3 * scale;
   ctx.beginPath();
   ctx.fillStyle = "#f4b400";
-  ctx.ellipse(-5, wingY + 5, 8, 4, Math.PI / 6, 0, Math.PI * 2);
+  ctx.ellipse(-5 * scale, wingY + 5 * scale, 8 * scale, 4 * scale, Math.PI / 6, 0, Math.PI * 2);
   ctx.fill();
 
   // eye
   ctx.beginPath();
   ctx.fillStyle = "#000";
-  ctx.arc(7, -4, 3, 0, Math.PI * 2);
+  ctx.arc(7 * scale, -4 * scale, 3 * scale, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.restore();
@@ -99,7 +111,7 @@ function drawExplosion() {
   explosions.forEach((ex, index) => {
     ctx.beginPath();
     ctx.fillStyle = `rgba(255, ${200 + ex.life}, 0, ${ex.alpha})`;
-    ctx.arc(ex.x, ex.y, ex.size, 0, Math.PI * 2);
+    ctx.arc(ex.x * scale, ex.y * scale, ex.size * scale, 0, Math.PI * 2);
     ctx.fill();
     ex.size += 2;
     ex.alpha -= 0.04;
@@ -107,43 +119,42 @@ function drawExplosion() {
   });
 }
 
+// --- Update & Logic ---
 function update() {
   if (!started) return;
   frame++;
   bird.frame++;
   bird.vy += gravity;
   bird.y += bird.vy;
-  groundOffset -= 2;
-  if (groundOffset <= -40) groundOffset = 0;
+  groundOffset -= 2 * scale;
+  if (groundOffset <= -40 * scale) groundOffset = 0;
 
-  // pipes
+  // spawn pipes
   if (frame % 90 === 0) {
     let top = Math.random() * 250 + 50;
-    pipes.push({ x: canvas.width, width: 60, top: top, gap: 150 });
+    pipes.push({ x: canvas.width, width: 60 * scale, top: top * scale, gap: 150 * scale });
   }
-groundOffset -= 2 * scale;
-pipes.forEach(pipe => (pipe.x -= 3 * scale));
-clouds.forEach(cloud => (cloud.x -= 1.2 * scale));
 
-  // clouds
+  pipes.forEach(pipe => (pipe.x -= 3 * scale));
+  clouds.forEach(cloud => (cloud.x -= 1.2 * scale));
+
   if (frame % 120 === 0)
     clouds.push({ x: canvas.width, y: Math.random() * 200 + 20, size: Math.random() * 20 + 20 });
-  clouds.forEach(cloud => (cloud.x -= 1.2));
   if (clouds.length && clouds[0].x < -50) clouds.shift();
 
   // collisions
   pipes.forEach(pipe => {
     if (
-      bird.x + bird.r > pipe.x &&
-      bird.x - bird.r < pipe.x + pipe.width &&
-      (bird.y - bird.r < pipe.top || bird.y + bird.r > pipe.top + pipe.gap)
+      bird.x * scale + bird.r * scale > pipe.x &&
+      bird.x * scale - bird.r * scale < pipe.x + pipe.width &&
+      (bird.y * scale - bird.r * scale < pipe.top || bird.y * scale + bird.r * scale > pipe.top + pipe.gap)
     ) {
       triggerExplosion();
       endGame();
     }
   });
 
-  if (bird.y + bird.r > groundY || bird.y - bird.r < 0) {
+  if (bird.y * scale + bird.r * scale > groundY || bird.y - bird.r < 0) {
     triggerExplosion();
     endGame();
   }
@@ -157,17 +168,18 @@ function draw() {
   drawPipes();
   drawBird();
   drawExplosion();
-  // Draw "Made By" credit at the bottom of the canvas
-ctx.save();
-ctx.font = "16px Poppins, sans-serif";
-ctx.fillStyle = "#fff";
-ctx.shadowColor = "rgba(0,0,0,0.5)";
-ctx.shadowBlur = 3;
-ctx.textAlign = "center";
-ctx.fillText("Made By: Bit", canvas.width / 2, canvas.height - 10);
-ctx.restore();
+  // credit text
+  ctx.save();
+  ctx.font = `${16 * scale}px Poppins, sans-serif`;
+  ctx.fillStyle = "#fff";
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 3;
+  ctx.textAlign = "center";
+  ctx.fillText("Made By: Bit", canvas.width / 2, canvas.height - 10 * scale);
+  ctx.restore();
 }
 
+// --- Effects & Controls ---
 function triggerExplosion() {
   for (let i = 0; i < 10; i++) {
     explosions.push({
