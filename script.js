@@ -1,4 +1,3 @@
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
@@ -19,6 +18,15 @@ let gameOver = false;
 let started = false;
 let groundY = 580;
 let groundOffset = 0;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  groundY = canvas.height - 40; // ground stays at bottom
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas(); // run once at start
 
 function drawBackground() {
   let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
