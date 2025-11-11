@@ -5,6 +5,7 @@ const startBtn = document.getElementById('startBtn');
 const overlay = document.getElementById('overlay');
 const restartBtn = document.getElementById('restartBtn');
 const finalScore = document.getElementById('finalScore');
+const title = document.getElementById('title');
 
 let bird = { x: 80, y: 300, r: 18, vy: 0, frame: 0 };
 let baseGravity = 0.5;
@@ -20,29 +21,25 @@ let gameOver = false;
 let started = false;
 let groundY = 580;
 let groundOffset = 0;
-
-// --- NEW: Responsive scale factor ---
 let scale = 1;
 
-// --- Responsive canvas resize ---
+// 🧮 Responsive scaling
 function resizeCanvas() {
   const designWidth = 400;
   const designHeight = 600;
   const rect = canvas.getBoundingClientRect();
-
-  // Calculate scale relative to design size
   scale = rect.width / designWidth;
-
-  // Resize canvas resolution properly
   canvas.width = rect.width;
   canvas.height = rect.height;
-
   groundY = canvas.height - 20 * scale;
+
+  // 🪶 Adjust physics for screen height
+  gravity = baseGravity * scale * 1.2;
+  flap = baseFlap * scale * 1.2;
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// --- Drawing functions ---
 function drawBackground() {
   let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
   sky.addColorStop(0, "#6ec6ff");
@@ -50,7 +47,6 @@ function drawBackground() {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // clouds
   ctx.fillStyle = "rgba(255,255,255,0.8)";
   clouds.forEach(cloud => {
     ctx.beginPath();
@@ -72,7 +68,6 @@ function drawBird() {
   ctx.translate(bird.x * scale, bird.y * scale);
   ctx.rotate(bird.vy * 0.04);
 
-  // body
   ctx.fillStyle = "#ffeb3b";
   ctx.shadowColor = "rgba(0,0,0,0.4)";
   ctx.shadowBlur = 8;
@@ -80,19 +75,16 @@ function drawBird() {
   ctx.arc(0, 0, bird.r * scale, 0, Math.PI * 2);
   ctx.fill();
 
-  // wing
   let wingY = Math.sin(bird.frame / 5) * 3 * scale;
   ctx.beginPath();
   ctx.fillStyle = "#f4b400";
   ctx.ellipse(-5 * scale, wingY + 5 * scale, 8 * scale, 4 * scale, Math.PI / 6, 0, Math.PI * 2);
   ctx.fill();
 
-  // eye
   ctx.beginPath();
   ctx.fillStyle = "#000";
   ctx.arc(7 * scale, -4 * scale, 3 * scale, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.restore();
 }
 
@@ -119,7 +111,7 @@ function drawExplosion() {
   });
 }
 
-// --- Update & Logic ---
+// 🧠 Game loop
 function update() {
   if (!started) return;
   frame++;
@@ -132,7 +124,7 @@ function update() {
   // spawn pipes
   if (frame % 90 === 0) {
     let top = Math.random() * 250 + 50;
-    pipes.push({ x: canvas.width, width: 60 * scale, top: top * scale, gap: 150 * scale });
+    pipes.push({ x: canvas.width, width: 60 * scale, top: top * scale, gap: 150 * scale, passed: false });
   }
 
   pipes.forEach(pipe => (pipe.x -= 3 * scale));
@@ -142,12 +134,22 @@ function update() {
     clouds.push({ x: canvas.width, y: Math.random() * 200 + 20, size: Math.random() * 20 + 20 });
   if (clouds.length && clouds[0].x < -50) clouds.shift();
 
+  // ✅ SCORING: increase when bird passes a pipe
+  pipes.forEach(pipe => {
+    if (!pipe.passed && bird.x * scale > pipe.x + pipe.width) {
+      pipe.passed = true;
+      score++;
+      scoreDisplay.textContent = score;
+    }
+  });
+
   // collisions
   pipes.forEach(pipe => {
     if (
       bird.x * scale + bird.r * scale > pipe.x &&
       bird.x * scale - bird.r * scale < pipe.x + pipe.width &&
-      (bird.y * scale - bird.r * scale < pipe.top || bird.y * scale + bird.r * scale > pipe.top + pipe.gap)
+      (bird.y * scale - bird.r * scale < pipe.top ||
+       bird.y * scale + bird.r * scale > pipe.top + pipe.gap)
     ) {
       triggerExplosion();
       endGame();
@@ -168,7 +170,6 @@ function draw() {
   drawPipes();
   drawBird();
   drawExplosion();
-  // credit text
   ctx.save();
   ctx.font = `${16 * scale}px Poppins, sans-serif`;
   ctx.fillStyle = "#fff";
@@ -179,7 +180,6 @@ function draw() {
   ctx.restore();
 }
 
-// --- Effects & Controls ---
 function triggerExplosion() {
   for (let i = 0; i < 10; i++) {
     explosions.push({
@@ -209,11 +209,13 @@ function reset() {
   frame = 0;
   gameOver = false;
   overlay.style.display = "none";
+  title.style.display = "block";
 }
 
 function startGame() {
   reset();
   started = true;
+  title.style.display = "none";  // 🚫 hide title on start
   startBtn.style.display = "none";
   update();
 }
@@ -226,3 +228,4 @@ startBtn.addEventListener("click", startGame);
 restartBtn.addEventListener("click", startGame);
 window.addEventListener("keydown", e => { if (e.code === "Space") flapBird(); });
 window.addEventListener("mousedown", flapBird);
+window.addEventListener("touchstart", flapBird); // 👆 mobile tap support
