@@ -229,3 +229,4 @@ restartBtn.addEventListener("click", startGame);
 window.addEventListener("keydown", e => { if (e.code === "Space") flapBird(); });
 window.addEventListener("mousedown", flapBird);
 window.addEventListener("touchstart", flapBird); // 👆 mobile tap support
+
